@@ -223,42 +223,68 @@ namespace map_downloader
 
     class Program
     {
-        private static string outputPath = @"f:\sat_imgs";
+        private static string outputPath = @"f:\data\sat_imgs";
 
         static void Download(string quadKey)
         {
-            string url = String.Format("http://ecn.t1.tiles.virtualearth.net/tiles/a{0}.jpeg?g=6906", quadKey);
+            
+            string url = String.Format("http://ecn.t2.tiles.virtualearth.net/tiles/a{0}.jpeg?g=6906", quadKey);
             string filepath = Path.Combine(outputPath, String.Format("a{0}.jpeg", quadKey));
-            using (WebClient myWebClient = new WebClient())
+            if (!File.Exists(filepath))
             {
-                // Download the Web resource and save it into the current filesystem folder.
-                myWebClient.DownloadFile(url, filepath);
+                using (WebClient myWebClient = new WebClient())
+                {
+                    // Download the Web resource and save it into the current filesystem folder.
+                    myWebClient.DownloadFile(url, filepath);
+                }
             }
         }
 
-        static void Main(string[] args)
+
+        static void Get_TileBBox(double lat1, double lon1, double lat2, double lon2,int level)
         {
+            int pixelX1, pixelY1, pixelX2, pixelY2;
+            int tileX1, tileY1, tileX2, tileY2;
+
+            TileSystem.LatLongToPixelXY(lat1, lon1, level, out pixelX1, out pixelY1);
+            TileSystem.LatLongToPixelXY(lat2, lon2, level, out pixelX2, out pixelY2);
+            TileSystem.PixelXYToTileXY(pixelX1, pixelY1, out tileX1, out tileY1);
+            TileSystem.PixelXYToTileXY(pixelX2, pixelY2, out tileX2, out tileY2);
+
+
+            TileSystem.TileXYToPixelXY(tileX1, tileY1, out pixelX1, out pixelY1);
+            TileSystem.TileXYToPixelXY(tileX2+1, tileY2+1, out pixelX2, out pixelY2);
+
+
+            double olat1, olon1, olat2, olon2;
+
+            TileSystem.PixelXYToLatLong(pixelX1, pixelY1, level, out olat1, out olon1);
+            TileSystem.PixelXYToLatLong(pixelX2, pixelY2, level, out olat2, out olon2);
+
+            Console.WriteLine(olon1 + "," + olat1);
+            Console.WriteLine(olon2 + "," + olat2);
+
+        }
+
+
+        static void Download_sateimg()
+        {
+            int level = 19;
 
             int pixelX1, pixelY1, pixelX2, pixelY2;
-            double lat1 = 41.2379;
             double lon1 = -88.6034;
+            double lat1 = 41.2379;
 
-            double lat2 = 40.8815;
             double lon2 = -88.1891;
+            double lat2 = 40.8815;
 
-            lat1 = 34.9614;
-            lon1 = -91.1838;
-
-            lat2 = 34.4368;
-            lon2 = -90.6066;
-
+            Get_TileBBox(lat1, lon1, lat2, lon2, level);
 
             outputPath = outputPath + "_" + lat1 + "_" + lon1 + "_" + lat2 + "_" + lon2;
             if (!Directory.Exists(outputPath))
             {
                 Directory.CreateDirectory(outputPath);
             }
-            int level = 19;
             TileSystem.LatLongToPixelXY(lat1, lon1, level, out pixelX1, out pixelY1);
             TileSystem.LatLongToPixelXY(lat2, lon2, level, out pixelX2, out pixelY2);
             int tileX1, tileY1, tileX2, tileY2;
@@ -269,14 +295,60 @@ namespace map_downloader
             {
                 for (int j = tileY1; j < tileY2; j++)
                 {
-                    string quadKey = TileSystem.TileXYToQuadKey(i, j, level);
-                    Download(quadKey);
-                    int pixelX, pixelY;
-                    TileSystem.TileXYToPixelXY(i, j, out pixelX, out pixelY);
-                    Console.WriteLine(quadKey+" "+ i + " " +  j + " " + pixelX + " " + pixelY);
+                    try
+                    {
+                        string quadKey = TileSystem.TileXYToQuadKey(i, j, level);
+                        Download(quadKey);
+                        int pixelX, pixelY;
+                        TileSystem.TileXYToPixelXY(i, j, out pixelX, out pixelY);
+                        Console.WriteLine(quadKey + " " + i + " " + j + " " + pixelX + " " + pixelY);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
+
                 }
             }
+        }
 
+        static void Download_corp_static()
+        {
+
+        }
+
+
+        static void Gen_KML()
+        {
+            string path = @"F:\sat_imgs";
+            string[] files = Directory.GetFiles(path, "*.jpeg");
+            foreach (var file in files)
+            {
+                Console.WriteLine(file);
+            }
+        }
+
+
+        static void Main(string[] args)
+        {
+            int level = 19;
+
+            int pixelX1, pixelY1, pixelX2, pixelY2;
+            double lon1 = -91.1838;
+            double lat1 = 34.9614;
+
+            double lon2 = -90.6066;
+            double lat2 = 34.4368;
+
+            lat1 = float.Parse(args[0]);
+            lon1 = float.Parse(args[1]);
+            lat2 = float.Parse(args[2]);
+            lon2 = float.Parse(args[3]);
+
+
+            //Get_TileBBox(lat1, lon1, lat2, lon2, level);
+
+            Download_sateimg();
         }
     }
 }
