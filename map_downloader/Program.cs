@@ -267,16 +267,9 @@ namespace map_downloader
         }
 
 
-        static void Download_sateimg()
+        static void Download_sateimg(double lat1, double lon1, double lat2, double lon2,int level)
         {
-            int level = 19;
-
             int pixelX1, pixelY1, pixelX2, pixelY2;
-            double lon1 = -88.6034;
-            double lat1 = 41.2379;
-
-            double lon2 = -88.1891;
-            double lat2 = 40.8815;
 
             Get_TileBBox(lat1, lon1, lat2, lon2, level);
 
@@ -312,20 +305,76 @@ namespace map_downloader
             }
         }
 
-        static void Download_corp_static()
+
+        static void Gen_meta(string regionname)
         {
-
-        }
-
-
-        static void Gen_KML()
-        {
-            string path = @"F:\sat_imgs";
+            StreamWriter sw = new StreamWriter(@"F:\data\"+ regionname+".txt");
+            string path = @"F:\data\" + regionname;
             string[] files = Directory.GetFiles(path, "*.jpeg");
+            int minpixelX = -1, maxpixelX = -1, minpixelY = -1, maxpixelY = -1;
+            double minlon = -1, maxlon = -1, minlat = -1, maxlat = -1;
+
+            int level = 19;
             foreach (var file in files)
             {
-                Console.WriteLine(file);
+                int tileX,tileY;
+                string quadKey = Path.GetFileNameWithoutExtension(file).Remove(0, 1);
+                TileSystem.QuadKeyToTileXY(quadKey, out tileX, out tileY, out level);
+                int pixelX, pixelY;
+                double lon, lat;
+                TileSystem.TileXYToPixelXY(tileX, tileY, out pixelX, out pixelY);
+                TileSystem.PixelXYToLatLong(pixelX, pixelY, level, out lat, out lon);
+
+                if (pixelX<minpixelX || minpixelX==-1)
+                {
+                    minpixelX = pixelX;
+                }
+
+                if (pixelX > maxpixelX || maxpixelX == -1)
+                {
+                    maxpixelX = pixelX;
+                }
+
+                if (pixelY < minpixelY || minpixelY == -1)
+                {
+                    minpixelY = pixelY;
+                }
+
+                if (pixelY > maxpixelY || maxpixelY == -1)
+                {
+                    maxpixelY = pixelY;
+                }
+
+                if (lon < minlon || minlon == -1)
+                {
+                    minlon = lon;
+                }
+
+                if (lon > maxlon || maxlon == -1)
+                {
+                    maxlon = lon;
+                }
+
+                if (lat < minlat || minlat == -1)
+                {
+                    minlat = lat;
+                }
+
+                if (lat > maxlat || maxlat == -1)
+                {
+                    maxlat = lat;
+                }
+
+
+                sw.WriteLine(quadKey + "," + tileX + "," + tileY + "," + level + ","+ pixelX + "," + pixelY + "," + lat + "," + lon);
             }
+            sw.Close();
+
+            sw = new StreamWriter(@"F:\data\" + regionname + "_meta.txt");
+            sw.WriteLine(minpixelX + "," + minpixelY + "," + maxpixelX + "," + maxpixelY + "," + level);
+            sw.WriteLine(minlat + "," + maxlat + "," + minlon + "," + maxlon + "," + level);
+            sw.WriteLine((maxpixelX-minpixelX)+","+ (maxpixelY - minpixelY));
+            sw.Close();
         }
 
 
@@ -339,16 +388,19 @@ namespace map_downloader
 
             double lon2 = -90.6066;
             double lat2 = 34.4368;
-
+            /*
             lat1 = float.Parse(args[0]);
             lon1 = float.Parse(args[1]);
             lat2 = float.Parse(args[2]);
             lon2 = float.Parse(args[3]);
+            */
+            //Get_TileBBox(34.9619345057769, -91.1844635009766, 34.4363631809337, -90.6063079833984, level);
 
-
-            //Get_TileBBox(lat1, lon1, lat2, lon2, level);
-
-            Download_sateimg();
+            //Download_sateimg(lat1, lon1, lat2, lon2, level);
+            Gen_meta("sat_imgs_41.2380599975586_-88.6040496826172_40.8813323974609_-88.1886291503906");
+            Gen_meta("sat_imgs_47.3281211853027_-117.489852905273_46.8831939697266_-116.983795166016");
+            Gen_meta("sat_imgs_34.9619331359863_-91.1844635009766_34.4363632202148_-90.6063079833984");
+            //Gen_meta("sat_imgs_47.3281_-117.4898_46.8832_-116.9838");
         }
     }
 }
